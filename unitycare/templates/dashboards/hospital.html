@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Admin Monitor - UnityCare{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="mb-4">
+    <span class="badge text-bg-dark mb-2">Admin monitoring</span>
+    <h1 class="h2 mb-1">UnityCare Operations</h1>
+    <p class="text-muted mb-0">Monitor users, appointment volume, and consultation readiness.</p>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card card-shadow h-100"><div class="card-body"><div class="text-muted small">Patients</div><div class="display-6 fw-semibold">{{ stats.patients }}</div></div></div></div>
+    <div class="col-md-3"><div class="card card-shadow h-100"><div class="card-body"><div class="text-muted small">Doctors</div><div class="display-6 fw-semibold">{{ stats.doctors }}</div></div></div></div>
+    <div class="col-md-3"><div class="card card-shadow h-100"><div class="card-body"><div class="text-muted small">Appointments</div><div class="display-6 fw-semibold">{{ stats.appointments }}</div></div></div></div>
+    <div class="col-md-3"><div class="card card-shadow h-100"><div class="card-body"><div class="text-muted small">Open Requests</div><div class="display-6 fw-semibold">{{ stats.requests }}</div></div></div></div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-4">
+      <div class="card card-shadow h-100">
+        <div class="card-body">
+          <h2 class="h5">Status Breakdown</h2>
+          <div class="list-group list-group-flush">
+            {% for item in status_counts %}
+              <div class="list-group-item d-flex justify-content-between px-0">
+                <span>{{ item.status }}</span>
+                <span class="badge text-bg-secondary">{{ item.total }}</span>
+              </div>
+            {% empty %}
+              <div class="text-muted">No appointment activity yet.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div class="card card-shadow h-100">
+        <div class="card-body">
+          <h2 class="h5">Recent Appointments</h2>
+          <div class="table-responsive">
+            <table class="table align-middle">
+              <thead><tr><th>Patient</th><th>Doctor</th><th>When</th><th>Status</th></tr></thead>
+              <tbody>
+                {% for appointment in recent_appointments %}
+                  <tr>
+                    <td>{{ appointment.patient.get_full_name|default:appointment.patient.username }}</td>
+                    <td>{{ appointment.doctor.get_full_name|default:appointment.doctor.username }}</td>
+                    <td>{{ appointment.scheduled_for|date:"M d, h:i A" }}</td>
+                    <td><span class="badge text-bg-secondary">{{ appointment.get_status_display }}</span></td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="4" class="text-muted">No appointments yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

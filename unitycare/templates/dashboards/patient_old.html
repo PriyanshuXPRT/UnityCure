@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% block title %}Patient Dashboard · UnityCare{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="row">
+    <div class="col-12">
+      <h2 class="mb-3">Welcome, {{ request.user.first_name|default:request.user.username }}</h2>
+      <p class="text-muted">Your health hub, appointments, and records.</p>
+    </div>
+    <div class="col-md-4">
+      <div class="card card-shadow mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Quick Actions</h5>
+          <p class="card-text text-muted">Access your healthcare services.</p>
+          <div class="mb-3">
+            <div class="row g-2 align-items-end">
+              <div class="col-12">
+                <label for="appt-doctor-id" class="form-label">Choose Doctor</label>
+                <select id="appt-doctor-id" class="form-select">
+                  <option value="">Loading doctors...</option>
+                </select>
+                <div class="form-text">Don’t see your doctor? <a href="/accounts/doctors/" target="_blank">Browse all doctors</a>.</div>
+              </div>
+              <div class="col-12">
+                <label for="appt-datetime" class="form-label">Date & Time</label>
+                <input id="appt-datetime" type="datetime-local" class="form-control" />
+              </div>
+              <div class="col-12">
+                <label for="appt-reason" class="form-label">Reason (optional)</label>
+                <input id="appt-reason" type="text" class="form-control" placeholder="e.g., Follow-up" />
+              </div>
+              <div class="col-12 d-flex gap-2 mt-2">
+                <button id="appt-book-btn" class="btn btn-primary">Book Appointment</button>
+                <button id="patient-appts-refresh-btn" class="btn btn-outline-secondary">Refresh</button>
+                <span id="appt-book-status" class="ms-2 text-muted"></span>
+              </div>
+            </div>
+          </div>
+          <hr />
+          <ul id="patient-appts-list" class="list-group small"></ul>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card card-shadow mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Doctors</h5>
+          <p class="card-text text-muted">Your providers and messages.</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card card-shadow mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Records</h5>
+          <p class="card-text text-muted">Medical history and files.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row mt-3">
+    <div class="col-md-6">
+      <div class="card card-shadow">
+        <div class="card-body">
+          <h5 class="card-title">Live Video & Chat</h5>
+          <p class="text-muted">Join your doctor's teleconferencing room with the room code provided.</p>
+          <div class="d-flex gap-2">
+            <input id="patient-room-input" type="text" class="form-control" placeholder="Enter room code (e.g., appointment-123)" />
+            <button id="patient-join-btn" class="btn btn-success">Join</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  (function() {
+    // Telecon join controls
+    const input = document.getElementById('patient-room-input');
+    const btn = document.getElementById('patient-join-btn');
+    if (btn) {
+      btn.addEventListener('click', function() {
+        const room = (input.value || 'general').trim();
+        if (!room) return;
+        window.location.href = `/telecon/room/${encodeURIComponent(room)}/`;
+      });
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') btn.click();
+      });
+    }
+
+    // Helper: fetch JSON with CSRF for POST
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    async function fetchAppointments() {
+      const listEl = document.getElementById('patient-appts-list');
+      if (!listEl) return;
+      listEl.innerHTML = '<li class="list-group-item">Loading...</li>';
+      try {
+        const resp = await fetch('/api/appointments/');
+        if (!resp.ok) throw new Error('Failed to load');
+        const data = await resp.json();
+        if (!Array.isArray(data) || data.length === 0) {
+          listEl.innerHTML = '<li class="list-group-item text-muted">No appointments yet.</li>';
+          return;
+        }
+        listEl.innerHTML = '';
+        data.forEach(item => {
+          const li = document.createElement('li');
+          li.className = 'list-group-item d-flex justify-content-between align-items-start';
+          const dt = new Date(item.scheduled_for);
+          li.innerHTML = `
+            <div>
+              <div><strong>${dt.toLocaleString()}</strong></div>
+              <div class="text-muted">Doctor: ${item.doctor_name || item.doctor}</div>
+              ${item.reason ? `<div class="text-muted">Reason: ${item.reason}</div>` : ''}
+            </div>
+            <span class="badge bg-secondary">${item.status}</span>
+          `;
+          listEl.appendChild(li);
+        });
+      } catch (e) {
+        listEl.innerHTML = '<li class="list-group-item text-danger">Failed to load appointments.</li>';
+      }
+    }
+
+    async function populateDoctors() {
+      const select = document.getElementById('appt-doctor-id');
+      if (!select) return;
+      try {
+        const resp = await fetch('/api/doctors/');
+        if (!resp.ok) throw new Error('Failed to load');
+        const data = await resp.json();
+        select.innerHTML = '<option value="">Select a doctor</option>';
+        data.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d.id;
+          opt.textContent = d.name + (d.specialty ? ` · ${d.specialty}` : '');
+          select.appendChild(opt);
+        });
+      } catch (e) {
+        select.innerHTML = '<option value="">Failed to load doctors</option>';
+      }
+    }
+
+    async function bookAppointment() {
+      const doctorId = parseInt(document.getElementById('appt-doctor-id').value, 10);
+      const dt = document.getElementById('appt-datetime').value;
+      const reason = document.getElementById('appt-reason').value || '';
+      const statusEl = document.getElementById('appt-book-status');
+      statusEl.textContent = '';
+      if (!doctorId || !dt) {
+        statusEl.textContent = 'Doctor and date/time are required.';
+        statusEl.className = 'text-danger';
+        return;
+      }
+      try {
+        const payload = { doctor: doctorId, scheduled_for: new Date(dt).toISOString(), reason };
+        const resp = await fetch('/api/appointments/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+          },
+          body: JSON.stringify(payload)
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.detail || 'Failed to create appointment');
+        }
+        statusEl.textContent = 'Appointment requested successfully.';
+        statusEl.className = 'text-success';
+        // Refresh both lists: patient here; doctor list will show on their dashboard when they load/refresh
+        fetchAppointments();
+      } catch (e) {
+        statusEl.textContent = e.message || 'Error creating appointment';
+        statusEl.className = 'text-danger';
+      }
+    }
+
+    // Wire up buttons
+    const refreshBtn = document.getElementById('patient-appts-refresh-btn');
+    if (refreshBtn) refreshBtn.addEventListener('click', fetchAppointments);
+    const bookBtn = document.getElementById('appt-book-btn');
+    if (bookBtn) bookBtn.addEventListener('click', bookAppointment);
+
+    // Load doctors and appointments on page load
+    populateDoctors();
+    fetchAppointments();
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block title %}Patient Dashboard - UnityCare{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-end mb-4">
+    <div>
+      <span class="badge text-bg-primary mb-2">Patient workspace</span>
+      <h1 class="h2 mb-1">Welcome, {{ request.user.first_name|default:request.user.username }}</h1>
+      <p class="text-muted mb-0">Search doctors, request an appointment, and join your consultation from one place.</p>
+    </div>
+    <a class="btn btn-gradient" href="{% url 'appointments' %}">Book Appointment</a>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card card-shadow h-100"><div class="card-body">
+        <div class="text-muted small">Upcoming</div>
+        <div class="display-6 fw-semibold">{{ stats.upcoming }}</div>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="card card-shadow h-100"><div class="card-body">
+        <div class="text-muted small">Doctors Available</div>
+        <div class="display-6 fw-semibold">{{ stats.doctors }}</div>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="card card-shadow h-100"><div class="card-body">
+        <div class="text-muted small">Completed Visits</div>
+        <div class="display-6 fw-semibold">{{ stats.completed }}</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="card card-shadow h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h5 mb-0">Find a Doctor</h2>
+            <input id="doctor-search" class="form-control form-control-sm w-50" type="search" placeholder="Search specialty or name">
+          </div>
+          <div id="doctor-results" class="row g-3"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card card-shadow h-100">
+        <div class="card-body">
+          <h2 class="h5 mb-3">My Appointments</h2>
+          <div class="list-group list-group-flush">
+            {% for appointment in appointments %}
+              <div class="list-group-item px-0">
+                <div class="d-flex justify-content-between gap-3">
+                  <div>
+                    <div class="fw-semibold">{{ appointment.doctor.get_full_name|default:appointment.doctor.username }}</div>
+                    <div class="text-muted small">{{ appointment.scheduled_for|date:"M d, Y h:i A" }}</div>
+                    {% if appointment.reason %}<div class="small">{{ appointment.reason }}</div>{% endif %}
+                  </div>
+                  <span class="badge text-bg-secondary align-self-start">{{ appointment.get_status_display }}</span>
+                </div>
+                {% if appointment.status == 'CONFIRMED' %}
+                  <a class="btn btn-sm btn-outline-primary mt-2" href="/telecon/room/appointment-{{ appointment.id }}/">Join Teleconsultation</a>
+                {% endif %}
+              </div>
+            {% empty %}
+              <div class="text-muted">No appointments yet. Search for a doctor to start.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const results = document.getElementById('doctor-results');
+  const search = document.getElementById('doctor-search');
+  let doctors = [];
+
+  function render() {
+    const query = (search.value || '').toLowerCase();
+    const filtered = doctors.filter((doctor) => `${doctor.name} ${doctor.specialty}`.toLowerCase().includes(query));
+    results.innerHTML = filtered.length ? '' : '<div class="col-12 text-muted">No doctors match your search.</div>';
+    filtered.forEach((doctor) => {
+      const col = document.createElement('div');
+      col.className = 'col-md-6';
+      col.innerHTML = `
+        <div class="border rounded-2 p-3 h-100 bg-white">
+          <div class="d-flex align-items-center gap-3 mb-2">
+            <div class="rounded-circle bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center" style="width:44px;height:44px;">${doctor.name.charAt(0).toUpperCase()}</div>
+            <div>
+              <div class="fw-semibold">${doctor.name}</div>
+              <div class="text-muted small">${doctor.specialty || 'General Medicine'}</div>
+            </div>
+          </div>
+          <a class="btn btn-sm btn-primary w-100" href="{% url 'appointments' %}?doctor=${doctor.id}">Book Appointment</a>
+        </div>`;
+      results.appendChild(col);
+    });
+  }
+
+  fetch('/api/doctors/')
+    .then((response) => response.json())
+    .then((data) => { doctors = data; render(); })
+    .catch(() => { results.innerHTML = '<div class="col-12 text-danger">Unable to load doctors.</div>'; });
+
+  search.addEventListener('input', render);
+})();
+</script>
+{% endblock %}

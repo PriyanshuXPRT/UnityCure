@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block title %}Profile · UnityCare{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="row">
+    <div class="col-12">
+      <h2 class="mb-3">My Profile</h2>
+      <p class="text-muted">Manage your account information and settings.</p>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card card-shadow">
+        <div class="card-body">
+          <h5 class="card-title">Personal Information</h5>
+          <form method="post" id="profile-form">
+            {% csrf_token %}
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="first_name" class="form-label">First Name</label>
+                  <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name }}" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="last_name" class="form-label">Last Name</label>
+                  <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name }}" required>
+                </div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="email" class="form-label">Email Address</label>
+              <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+            </div>
+            <div class="mb-3">
+              <label for="username" class="form-label">Username</label>
+              <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required>
+            </div>
+            
+            {% if user.role == 'DOCTOR' %}
+            <div class="mb-3">
+              <label for="specialty" class="form-label">Specialty</label>
+              <input type="text" class="form-control" id="specialty" name="specialty" value="{{ user.doctor.specialty|default:'' }}">
+            </div>
+            {% elif user.role == 'HOSPITAL' %}
+            <div class="mb-3">
+              <label for="address" class="form-label">Address</label>
+              <textarea class="form-control" id="address" name="address" rows="3">{{ user.hospital.address|default:'' }}</textarea>
+            </div>
+            {% endif %}
+            
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary">Update Profile</button>
+              <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">Cancel</button>
+            </div>
+            <div id="profile-status" class="mt-2"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4">
+      <div class="card card-shadow">
+        <div class="card-body">
+          <h5 class="card-title">Account Details</h5>
+          <div class="mb-3">
+            <strong>Role:</strong> 
+            <span class="badge bg-primary">{{ user.get_role_display }}</span>
+          </div>
+          <div class="mb-3">
+            <strong>Member Since:</strong><br>
+            <span class="text-muted">{{ user.date_joined|date:"F d, Y" }}</span>
+          </div>
+          <div class="mb-3">
+            <strong>Last Login:</strong><br>
+            <span class="text-muted">{{ user.last_login|date:"F d, Y g:i A"|default:"Never" }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card card-shadow mt-4">
+        <div class="card-body">
+          <h5 class="card-title">Change Password</h5>
+          <p class="card-text text-muted">Update your account password for security.</p>
+          <a href="{% url 'password_change' %}" class="btn btn-outline-primary">Change Password</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('profile-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const statusEl = document.getElementById('profile-status');
+  const formData = new FormData(this);
+  
+  try {
+    const response = await fetch('{% url "profile" %}', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      }
+    });
+    
+    if (response.ok) {
+      statusEl.innerHTML = '<div class="alert alert-success">Profile updated successfully!</div>';
+      setTimeout(() => statusEl.innerHTML = '', 3000);
+    } else {
+      throw new Error('Failed to update profile');
+    }
+  } catch (error) {
+    statusEl.innerHTML = '<div class="alert alert-danger">Error updating profile. Please try again.</div>';
+  }
+});
+</script>
+{% endblock %}
