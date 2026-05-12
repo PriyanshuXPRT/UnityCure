@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Doctors · UnityCare{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="row mb-3">
+    <div class="col-12 d-flex justify-content-between align-items-end">
+      <div>
+        <h2 class="mb-1">Doctors Directory</h2>
+        <p class="text-muted mb-0">Browse all registered doctors.</p>
+      </div>
+      <div class="w-50">
+        <input id="doctor-search" type="search" class="form-control" placeholder="Search by name, specialty or username" />
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <ul id="doctors-list" class="list-group">
+        {% for d in doctors %}
+          <li class="list-group-item d-flex justify-content-between align-items-start">
+            <div>
+              <div><strong>{{ d.name }}</strong> {% if d.specialty %}<span class="text-muted">· {{ d.specialty }}</span>{% endif %}</div>
+              <div class="text-muted small">Username: {{ d.username }}{% if d.email %} · {{ d.email }}{% endif %}</div>
+              <div class="text-muted small">ID: {{ d.id }}</div>
+            </div>
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'patient_dashboard' %}">Book</a>
+          </li>
+        {% empty %}
+          <li class="list-group-item text-muted">No doctors registered yet.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  const input = document.getElementById('doctor-search');
+  const list = document.getElementById('doctors-list');
+  if (!input || !list) return;
+  const items = Array.from(list.querySelectorAll('li.list-group-item'));
+  function filter() {
+    const q = (input.value || '').toLowerCase();
+    items.forEach(li => {
+      const text = li.textContent.toLowerCase();
+      li.style.display = text.includes(q) ? '' : 'none';
+    });
+  }
+  input.addEventListener('input', filter);
+})();
+</script>
+{% endblock %}

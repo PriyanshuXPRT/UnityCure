@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block title %}Teleconferencing · UnityCare{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="row">
+    <div class="col-12">
+      <h2 class="mb-3">Teleconferencing</h2>
+      <p class="text-muted">Join video consultations with your healthcare providers.</p>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card card-shadow">
+        <div class="card-body">
+          <h5 class="card-title">Join Video Consultation</h5>
+          <p class="text-muted">Enter the room code provided by your doctor to join the video consultation.</p>
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label for="patient-room-input" class="form-label">Room Code</label>
+              <input id="patient-room-input" type="text" class="form-control" placeholder="Enter room code (e.g., appointment-123)" />
+              <div class="form-text">Room codes are typically provided by your doctor via email or SMS.</div>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+              <button id="patient-join-btn" class="btn btn-success w-100">Join Room</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4">
+      <div class="card card-shadow">
+        <div class="card-body">
+          <h5 class="card-title">Quick Access</h5>
+          <p class="card-text text-muted">Common room codes for quick access.</p>
+          <div class="d-grid gap-2">
+            <button class="btn btn-outline-primary btn-sm quick-join" data-room="general">General Consultation</button>
+            <button class="btn btn-outline-primary btn-sm quick-join" data-room="emergency">Emergency Room</button>
+            <button class="btn btn-outline-primary btn-sm quick-join" data-room="followup">Follow-up</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card card-shadow">
+        <div class="card-body">
+          <h5 class="card-title">How to Use Teleconferencing</h5>
+          <div class="row">
+            <div class="col-md-4">
+              <h6>1. Get Room Code</h6>
+              <p class="text-muted small">Your doctor will provide you with a unique room code for your consultation.</p>
+            </div>
+            <div class="col-md-4">
+              <h6>2. Join the Room</h6>
+              <p class="text-muted small">Enter the room code above and click "Join Room" to start the video call.</p>
+            </div>
+            <div class="col-md-4">
+              <h6>3. Allow Permissions</h6>
+              <p class="text-muted small">Grant camera and microphone permissions when prompted by your browser.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // Telecon join controls
+    const input = document.getElementById('patient-room-input');
+    const btn = document.getElementById('patient-join-btn');
+    
+    function joinRoom(roomCode) {
+      const room = (roomCode || input.value || 'general').trim();
+      if (!room) {
+        alert('Please enter a room code');
+        return;
+      }
+      window.location.href = `/telecon/room/${encodeURIComponent(room)}/`;
+    }
+    
+    if (btn) {
+      btn.addEventListener('click', function() {
+        joinRoom();
+      });
+      
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          joinRoom();
+        }
+      });
+    }
+    
+    // Quick join buttons
+    const quickJoinBtns = document.querySelectorAll('.quick-join');
+    quickJoinBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const room = this.getAttribute('data-room');
+        joinRoom(room);
+      });
+    });
+  })();
+</script>
+{% endblock %}

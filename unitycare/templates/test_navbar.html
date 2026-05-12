@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Navbar Test{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <h1>Navbar Test Page</h1>
+  <div class="alert alert-info">
+    <h4>Authentication Status:</h4>
+    <p><strong>User authenticated:</strong> {{ user.is_authenticated }}</p>
+    {% if user.is_authenticated %}
+      <p><strong>Username:</strong> {{ user.username }}</p>
+      <p><strong>Role:</strong> {{ user.role }}</p>
+      <p><strong>First Name:</strong> {{ user.first_name }}</p>
+      <p><strong>Is Superuser:</strong> {{ user.is_superuser }}</p>
+    {% else %}
+      <p>You are not logged in. The navbar will only show "Sign in" and "Sign up" options.</p>
+    {% endif %}
+  </div>
+  
+  <div class="alert alert-warning">
+    <h4>Expected Navbar Items:</h4>
+    {% if user.is_authenticated %}
+      <ul>
+        <li>Dashboard</li>
+        <li>Hospitals</li>
+        <li>Doctors</li>
+        <li>Services (dropdown with Appointments, Teleconferencing)</li>
+        <li>Support (dropdown with Profile, Feedback, Report Problem, Logout)</li>
+      </ul>
+    {% else %}
+      <ul>
+        <li>Sign in</li>
+        <li>Sign up (dropdown with As Patient, As Doctor, As Hospital)</li>
+      </ul>
+    {% endif %}
+  </div>
+  
+  {% if not user.is_authenticated %}
+    <div class="alert alert-primary">
+      <p>To see the full navbar, please <a href="{% url 'login' %}" class="alert-link">log in</a> first.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

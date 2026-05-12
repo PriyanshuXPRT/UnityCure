@@ -1,0 +1,7 @@
+{% extends 'accounts/_signup_form.html' %}
+{% block title %}Patient Sign Up · UnityCare{% endblock %}
+{% block content %}
+  {% with page_title='Patient Sign Up' page_subtitle='Create your account to book appointments and manage your care.' %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock %}
